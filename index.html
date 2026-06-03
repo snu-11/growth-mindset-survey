@@ -123,7 +123,7 @@
         <div class="bg-indigo-50 px-6 py-4 border-b border-indigo-100 flex justify-between items-center">
           <div>
             <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">PART 1</span>
-            <h3 class="text-lg font-bold text-slate-800">지능에 대한 나의 생각</h3>
+            <h3 class="text-lg font-bold text-slate-800" id="p1-title">지능에 대한 나의 생각</h3>
           </div>
           <span class="text-xs text-indigo-500 bg-white border border-indigo-200 px-2 py-1 rounded font-medium" id="p1-frame-label">자기 기준(나) 프레임</span>
         </div>
@@ -832,6 +832,8 @@ function getTargetSheet() {
       
       const btnSelf = document.getElementById('btn-frame-self');
       const btnOthers = document.getElementById('btn-frame-others');
+      const p1Title = document.getElementById('p1-title');
+      const p3Title = document.getElementById('p3-title');
       
       if (frameType === 'self') {
         btnSelf.className = "px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 bg-indigo-600 text-white";
@@ -839,12 +841,18 @@ function getTargetSheet() {
         document.getElementById('current-frame-badge').innerText = "자기 기준 (나)";
         document.getElementById('p1-frame-label').innerText = "자기 기준(나) 프레임";
         document.getElementById('p3-frame-label').innerText = "자기 기준(나) 프레임";
+        
+        if (p1Title) p1Title.innerText = "지능에 대한 나의 생각";
+        if (p3Title) p3Title.innerText = "1년 후 나의 점수 예측";
       } else {
         btnSelf.className = "px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 text-slate-300 hover:text-white";
         btnOthers.className = "px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200 bg-indigo-600 text-white";
         document.getElementById('current-frame-badge').innerText = "타인 기준 (사람들)";
         document.getElementById('p1-frame-label').innerText = "타인 기준(사람들) 프레임";
         document.getElementById('p3-frame-label').innerText = "타인 기준(사람들) 프레임";
+        
+        if (p1Title) p1Title.innerText = "지능에 대한 사람들의 생각";
+        if (p3Title) p3Title.innerText = "1년 후 타인의 점수 예측";
       }
 
       renderPart1Questions();
