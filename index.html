@@ -671,7 +671,7 @@ function getTargetSheet() {
   <script>
     // App State Configuration
     const STATE = {
-      framing: 'self', // 'self' or 'others'
+      framing: 'self', // 'self' or 'others' (will be randomized on load)
       gasUrl: CONFIG.googleWebAppUrl || localStorage.getItem('gas_sheet_url') || '',
       responses: JSON.parse(localStorage.getItem('study2_responses')) || [],
       p2DisplayOrder: 'original_first' // 'original_first' or 'modified_first'
@@ -766,14 +766,17 @@ function getTargetSheet() {
         updateGasSyncStatusIndicator(false);
       }
       
+      // [무작위 배정 시스템] 50% 확률로 조건 무작위 할당 (URL 파라미터가 강제 지정되어 있다면 해당 값 우선)
+      let initialFraming = Math.random() < 0.5 ? 'self' : 'others';
+      if (urlParams.get('frame') === 'self' || urlParams.get('frame') === 'others') {
+        initialFraming = urlParams.get('frame');
+      }
+      
+      // 프레이밍 설정 및 연동 UI 업데이트 트리거 (Part 1, Part 3 자동 렌더링 포함)
+      setFraming(initialFraming);
+      
       // 3. Counterbalancing Part 2 (Shuffle layout)
       counterbalancePart2();
-
-      // 4. Render Part 1 Questions
-      renderPart1Questions();
-
-      // 5. Render Part 3 wording based on initial state
-      updatePart3FramingText();
 
       // 6. Update data table UI
       updateResponseTableUI();
