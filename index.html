@@ -30,10 +30,9 @@
   <!-- ================= CONFIGURATION & RESEARCHER SETTINGS ================= -->
   <script>
     // ⚠️ [연구자 중요 설정] 
-    // 생성하신 Google Apps Script의 웹 앱 URL을 아래 따옴표 안에 직접 붙여넣으세요!
-    // 이렇게 설정해야 모든 컴퓨터/스마트폰 참여자의 데이터가 연구자님의 구글 시트로 실시간 저장됩니다.
+    // 아래 빈 따옴표 안에 구글 Apps Script 배포를 완료하고 복사해둔 "웹 앱 URL(/exec로 끝나는 주소)"을 붙여넣으세요!
     const CONFIG = {
-      googleWebAppUrl: "" // 예시: "https://script.google.com/macros/s/AKfycbz_XXXXX_YYYYY/exec"
+      googleWebAppUrl: "https://script.google.com/macros/s/AKfycbwJutPkSAN-N0z-Uo0hCn5JHchGApzERDDh3HGY4Cr1UNvNOSNQLa7p3FQufZM3B5QR/exec" 
     };
   </script>
   <!-- ======================================================================= -->
@@ -109,7 +108,7 @@
         본 조사는 개인의 성장에 대한 태도와 인식을 이해하기 위한 학술 연구 설문입니다. 귀하의 응답은 오직 연구 목적으로만 통계처리되어 분석되며, 개인 신원은 완전한 비밀로 보호됩니다. 각 문항을 끝까지 읽고 솔직하게 답변해 주시기 바랍니다.
       </p>
       
-      <!-- Framing Status Indicator for Participant (Only visible to admin to prevent framing bias in real study) -->
+      <!-- Framing Status Indicator for Participant (Only visible to admin to prevent framing bias) -->
       <div id="survey-frame-tag" class="mt-4 hidden items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium w-fit">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
         현재 조사 조건: <span id="current-frame-badge" class="font-bold">자기 기준 (나)</span>
@@ -141,7 +140,7 @@
         </div>
       </section>
 
-      <!-- PART 2: Effort vs Talent (Counterbalanced/Randomized Containers) -->
+      <!-- PART 2: Effort vs Talent -->
       <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="bg-indigo-50 px-6 py-4 border-b border-indigo-100">
           <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">PART 2</span>
@@ -153,7 +152,7 @@
             지능을 발달시키고 향상시키는 데 있어 노력과 타고난 재능이 차지하는 비중에 대한 질문입니다.
           </p>
 
-          <!-- Randomized Inner Containers (Order modified dynamically in JS) -->
+          <!-- Counterbalanced Flow -->
           <div id="part2-flow-container" class="space-y-10">
             
             <!-- BLOCK A: [원형] Slider Ratio (Effort + Talent = 100%) -->
@@ -440,7 +439,7 @@
         <button type="submit" class="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
           설문 완료 및 응답 전송
         </button>
-        <p class="text-xs text-slate-400 mt-3">제출 시, 구글 드라이브 및 연구 분석 서버로 데이터가 안전하게 암호화되어 전송됩니다.</p>
+        <p class="text-xs text-slate-400 mt-3">제출 시, 구글 드라이브 및 연구 분석 서버로 데이터가 전송됩니다.</p>
       </div>
 
     </form>
@@ -552,7 +551,7 @@ function doGet(e) {
 // 2. 실제 설문 제출 시 전송되는 데이터를 시트에 동적 기록하는 함수
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var sheet = getTargetSheet();
     var data = JSON.parse(e.postData.contents);
     
     // 시트가 완전히 비어있을 경우 헤더를 먼저 생성
@@ -588,6 +587,20 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// 3. 스프레드시트 컨테이너가 분리된 독립형 스크립트에서도 지정된 ID로 자동 기록되도록 구성한 보강 장치
+function getTargetSheet() {
+  var sheet;
+  try {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  } catch(e) {}
+  
+  if (!sheet) {
+    var ss = SpreadsheetApp.openById("1TCiGc8ypIR4G-MrLVk860Hfc7oOgAFqHOBp4ck6Rwd8");
+    sheet = ss.getActiveSheet();
+  }
+  return sheet;
 }</textarea>
           </div>
 
@@ -739,7 +752,7 @@ function doPost(e) {
 
     // Initial load
     window.onload = function() {
-      // 1. Determine Researcher Mode Access via URL parameter (?admin=true or ?mode=researcher)
+      // 1. Determine Researcher Mode Access via URL parameter (?admin=true)
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has('admin') || urlParams.get('mode') === 'researcher') {
         showResearcherConsole();
@@ -753,7 +766,7 @@ function doPost(e) {
         updateGasSyncStatusIndicator(false);
       }
       
-      // 3. Counterbalancing Part 2 (Shuffle the Original and Modified blocks with 50% probability)
+      // 3. Counterbalancing Part 2 (Shuffle layout)
       counterbalancePart2();
 
       // 4. Render Part 1 Questions
@@ -776,7 +789,6 @@ function doPost(e) {
       // 50% chance to swap order
       if (Math.random() < 0.5) {
         STATE.p2DisplayOrder = 'modified_first';
-        // Clear and append in reverse order
         container.innerHTML = '';
         container.appendChild(modifiedBlock);
         container.appendChild(divider);
@@ -832,7 +844,6 @@ function doPost(e) {
         document.getElementById('p3-frame-label').innerText = "타인 기준(사람들) 프레임";
       }
 
-      // Re-render Framing Dependent sections
       renderPart1Questions();
       updatePart3FramingText();
     }
@@ -877,7 +888,7 @@ function doPost(e) {
       });
     }
 
-    // Part 2 Interactive Sliders Dual Sync
+    // Part 2 Interactive Sliders
     function updateRatioSlider(value) {
       const talentPercent = parseInt(value);
       const effortPercent = 100 - talentPercent;
@@ -1013,7 +1024,6 @@ function doPost(e) {
       const timestamp = new Date().toISOString();
       const participantId = 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
-      // Collect Likert 1-6 Responses
       const p1Answers = {};
       let sumP1 = 0;
       for (let i = 1; i <= 6; i++) {
@@ -1023,7 +1033,6 @@ function doPost(e) {
       }
       const p1Avg = (sumP1 / 6).toFixed(2);
 
-      // Part 3 Values
       const aMin = parseInt(formData.get('p3_a_min'));
       const aMax = parseInt(formData.get('p3_a_max'));
       const bMin = parseInt(formData.get('p3_b_min'));
@@ -1036,10 +1045,8 @@ function doPost(e) {
         participant_id: participantId,
         framing_condition: STATE.framing,
         
-        // Counterbalance Tracking (역균형 보정값 기록)
         p2_display_order: STATE.p2DisplayOrder,
         
-        // Part 1
         p1_q1: p1Answers.p1_q1,
         p1_q2: p1Answers.p1_q2,
         p1_q3: p1Answers.p1_q3,
@@ -1048,13 +1055,11 @@ function doPost(e) {
         p1_q6: p1Answers.p1_q6,
         p1_average: parseFloat(p1Avg),
 
-        // Part 2
         p2_original_talent_percent: parseInt(formData.get('p2_ratio_slider')),
         p2_original_effort_percent: 100 - parseInt(formData.get('p2_ratio_slider')),
         p2_modified_effort_importance: parseInt(formData.get('p2_effort_importance')),
         p2_modified_talent_importance: parseInt(formData.get('p2_talent_importance')),
 
-        // Part 3
         p3_a_min: aMin,
         p3_a_max: aMax,
         p3_a_gain: Math.max(0, aMax - 17),
@@ -1070,19 +1075,15 @@ function doPost(e) {
         p3_c_gain: Math.max(0, cMax - 92),
         p3_c_loss: Math.max(0, 92 - cMin),
 
-        // Part 4
         p4_difficulty_preference: formData.get('p4_difficulty'),
 
-        // Demographics
         demo_gender: formData.get('demo_gender'),
         demo_age: parseInt(formData.get('demo_age'))
       };
 
-      // Push to State local stack & update
       STATE.responses.push(responsePayload);
       localStorage.setItem('study2_responses', JSON.stringify(STATE.responses));
 
-      // Trigger Submission to Google Sheets Web App (Priority to Config URL, fallback to local storage url)
       const targetUrl = CONFIG.googleWebAppUrl || STATE.gasUrl;
       let syncedToGoogle = false;
       
@@ -1091,7 +1092,6 @@ function doPost(e) {
         syncedToGoogle = true;
       }
 
-      // Update success modal labels
       document.getElementById('summary-time').innerText = new Date(timestamp).toLocaleString();
       document.getElementById('summary-condition').innerText = STATE.framing === 'self' ? '자기 기준 (나)' : '타인 기준 (사람들)';
       document.getElementById('summary-theory').innerText = p1Avg;
@@ -1105,13 +1105,9 @@ function doPost(e) {
         badge.className = "text-amber-600 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded";
       }
 
-      // Open Success Modal
       toggleModal('success-modal');
-      
-      // Refresh local table view
       updateResponseTableUI();
       
-      // Reset form
       e.target.reset();
       updateRatioSlider(50);
       document.getElementById('p2-ratio-slider').value = 50;
@@ -1121,21 +1117,21 @@ function doPost(e) {
       document.getElementById('p2-talent-imp-val').innerText = "50";
     }
 
-    // Google Sheets POST (no-cors, text/plain bypass to ensure CORS compatibility)
+    // Google Sheets POST (no-cors CORS bypass)
     function postDataToGoogleSheets(url, payload) {
       fetch(url, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
-          'Content-Type': 'text/plain' // Setting text/plain prevents CORS preflight triggers
+          'Content-Type': 'text/plain'
         },
         body: JSON.stringify(payload)
       })
       .then(res => {
-        console.log("Data successfully emitted to Google Apps Script.");
+        console.log("Data sent to Google Sheets successfully.");
       })
       .catch(err => {
-        console.error("Data submission failed:", err);
+        console.error("Submission error:", err);
       });
     }
 
@@ -1184,13 +1180,11 @@ function doPost(e) {
       });
     }
 
-    // Modal close & Reset Survey View state
     function closeSuccessModal() {
       toggleModal('success-modal');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Custom Reset Confirmation Modal Manager
     function openClearConfirmModal() {
       toggleModal('clear-confirm-modal');
     }
