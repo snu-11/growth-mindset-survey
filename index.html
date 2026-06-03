@@ -27,13 +27,24 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 antialiased pb-16">
 
-  <!-- RESEARCHER CONSOLE (Top Sticky Panel) -->
-  <div id="researcher-console" class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md">
+  <!-- ================= CONFIGURATION & RESEARCHER SETTINGS ================= -->
+  <script>
+    // ⚠️ [연구자 중요 설정] 
+    // 생성하신 Google Apps Script의 웹 앱 URL을 아래 따옴표 안에 직접 붙여넣으세요!
+    // 이렇게 설정해야 모든 컴퓨터/스마트폰 참여자의 데이터가 연구자님의 구글 시트로 실시간 저장됩니다.
+    const CONFIG = {
+      googleWebAppUrl: "" // 예시: "https://script.google.com/macros/s/AKfycbz_XXXXX_YYYYY/exec"
+    };
+  </script>
+  <!-- ======================================================================= -->
+
+  <!-- RESEARCHER CONSOLE (Hidden by default, shown with ?admin=true or 5 clicks on the main title) -->
+  <div id="researcher-console" class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-md hidden">
     <div class="max-w-6xl mx-auto px-4 py-3">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <span class="bg-indigo-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-white">Researcher Preview</span>
-          <h1 class="text-sm font-semibold tracking-tight text-slate-200">Study 2: 자기/타인 프레이밍 조사</h1>
+          <span class="bg-indigo-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-white animate-pulse">Researcher Mode</span>
+          <h1 class="text-sm font-semibold tracking-tight text-slate-200">Study 2: 제어판</h1>
         </div>
         
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -52,7 +63,7 @@
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button onclick="toggleModal('db-modal')" class="bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-              데이터/연동 설정
+              구글 시트/데이터 관리
             </button>
             <button onclick="toggleConsole()" id="btn-toggle-console" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 p-1.5 rounded-lg text-xs" title="제어판 접기/펴기">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -64,8 +75,10 @@
       <!-- Collapsible Quick Stats / Info -->
       <div id="console-details" class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-300 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div>
-          <p class="mb-1"><span class="text-indigo-400 font-semibold">참여자 무작위 배정 안내:</span> 실제 조사 배포 시에는 URL 파라미터나 난수 생성기를 통해 균형 배정됩니다.</p>
-          <p class="text-slate-400">구글 드라이브(Sheets) 연동 상태: <span id="sync-status" class="text-rose-400 font-semibold">미연동 (아래 설정 메뉴에서 API 연동 가능)</span></p>
+          <p class="mb-1"><span class="text-indigo-400 font-semibold">설문 순서 역균형화:</span> 파트2 원형/수정 문항의 무작위 배치 및 역균형 처리가 완료되었습니다.</p>
+          <div class="text-slate-400">
+            구글 연동 상태: <span id="sync-status" class="text-rose-400 font-semibold">CONFIG 파일 설정 대기중</span>
+          </div>
         </div>
         <div class="flex gap-2">
           <button onclick="generateMockData(5)" class="bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 px-2.5 py-1 rounded border border-indigo-500/30 font-medium">
@@ -83,18 +96,23 @@
   <main class="max-w-4xl mx-auto px-4 mt-8">
     
     <!-- Survey Introduction -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6 relative overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6 relative overflow-hidden select-none">
       <div class="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
       <span class="text-indigo-600 font-semibold text-sm tracking-wide uppercase">Academic Research Study</span>
-      <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2">지능과 개인적 신념에 관한 설문</h2>
+      
+      <!-- Interactive Title (5 Clicks activate developer view) -->
+      <h2 id="main-survey-title" onclick="handleHeaderClick()" class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2 cursor-pointer hover:text-indigo-900 transition-colors" title="연구자이신가요? 5번 연속 클릭 시 관리 제어판이 열립니다.">
+        지능과 개인적 신념에 관한 설문
+      </h2>
+      
       <p class="text-slate-600 mt-3 leading-relaxed text-sm md:text-base">
         본 조사는 개인의 성장에 대한 태도와 인식을 이해하기 위한 학술 연구 설문입니다. 귀하의 응답은 오직 연구 목적으로만 통계처리되어 분석되며, 개인 신원은 완전한 비밀로 보호됩니다. 각 문항을 끝까지 읽고 솔직하게 답변해 주시기 바랍니다.
       </p>
       
-      <!-- Framing Status Indicator for Participant -->
-      <div class="mt-4 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        설문 유형: <span id="current-frame-badge" class="font-bold">자기 기준 (나)</span>
+      <!-- Framing Status Indicator for Participant (Only visible to admin to prevent framing bias in real study) -->
+      <div id="survey-frame-tag" class="mt-4 hidden items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium w-fit">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        현재 조사 조건: <span id="current-frame-badge" class="font-bold">자기 기준 (나)</span>
       </div>
     </div>
 
@@ -123,7 +141,7 @@
         </div>
       </section>
 
-      <!-- PART 2: Effort vs Talent -->
+      <!-- PART 2: Effort vs Talent (Counterbalanced/Randomized Containers) -->
       <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="bg-indigo-50 px-6 py-4 border-b border-indigo-100">
           <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">PART 2</span>
@@ -135,88 +153,93 @@
             지능을 발달시키고 향상시키는 데 있어 노력과 타고난 재능이 차지하는 비중에 대한 질문입니다.
           </p>
 
-          <!-- [원형] Slider Ratio (Effort + Talent = 100%) -->
-          <div class="space-y-4">
-            <div class="flex items-center gap-2">
-              <span class="bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded text-xs">[원형]</span>
-              <h4 class="text-sm font-bold text-slate-800">지능 향상에서 노력과 타고난 재능의 비중은 어느 쪽에 가깝나요?</h4>
-            </div>
+          <!-- Randomized Inner Containers (Order modified dynamically in JS) -->
+          <div id="part2-flow-container" class="space-y-10">
             
-            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-6">
-              <!-- Bar Visualization -->
-              <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden flex">
-                <div id="effort-bar" class="bg-indigo-600 h-full transition-all duration-150" style="width: 50%;"></div>
-                <div id="talent-bar" class="bg-amber-500 h-full transition-all duration-150" style="width: 50%;"></div>
+            <!-- BLOCK A: [원형] Slider Ratio (Effort + Talent = 100%) -->
+            <div id="p2-original-block" class="space-y-4">
+              <div class="flex items-center gap-2">
+                <span class="bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded text-xs">[원형]</span>
+                <h4 class="text-sm font-bold text-slate-800">지능 향상에서 노력과 타고난 재능의 비중은 어느 쪽에 가깝나요?</h4>
               </div>
-
-              <!-- Value Labels -->
-              <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-                  <div class="text-xs text-indigo-600 font-semibold mb-1">노력의 비중</div>
-                  <div class="text-2xl font-black text-indigo-700"><span id="p2-effort-label">50</span>%</div>
-                  <div class="text-[10px] text-slate-400 mt-1">노력 100%에 가까울수록 지능 향상은 노력에 따름</div>
+              
+              <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-6">
+                <!-- Bar Visualization -->
+                <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden flex">
+                  <div id="effort-bar" class="bg-indigo-600 h-full transition-all duration-150" style="width: 50%;"></div>
+                  <div id="talent-bar" class="bg-amber-500 h-full transition-all duration-150" style="width: 50%;"></div>
                 </div>
-                <div class="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                  <div class="text-xs text-amber-600 font-semibold mb-1">타고난 재능의 비중</div>
-                  <div class="text-2xl font-black text-amber-700"><span id="p2-talent-label">50</span>%</div>
-                  <div class="text-[10px] text-slate-400 mt-1">재능 100%에 가까울수록 지능은 유전/선천성에 달림</div>
-                </div>
-              </div>
 
-              <!-- Input Slider -->
-              <div class="space-y-2">
-                <input type="range" id="p2-ratio-slider" name="p2_ratio_slider" min="0" max="100" value="50" oninput="updateRatioSlider(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-                <div class="flex justify-between text-[11px] text-slate-400 font-medium px-1">
-                  <span>노력 100% · 재능 0%</span>
-                  <span class="text-indigo-600 font-semibold">재능 비중: <span id="p2-slider-indicator">50%</span></span>
-                  <span>재능 100% · 노력 0%</span>
+                <!-- Value Labels -->
+                <div class="grid grid-cols-2 gap-4 text-center">
+                  <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                    <div class="text-xs text-indigo-600 font-semibold mb-1">노력의 비중</div>
+                    <div class="text-2xl font-black text-indigo-700"><span id="p2-effort-label">50</span>%</div>
+                    <div class="text-[10px] text-slate-400 mt-1">노력 100%에 가까울수록 지능 향상은 노력에 따름</div>
+                  </div>
+                  <div class="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                    <div class="text-xs text-amber-600 font-semibold mb-1">타고난 재능의 비중</div>
+                    <div class="text-2xl font-black text-amber-700"><span id="p2-talent-label">50</span>%</div>
+                    <div class="text-[10px] text-slate-400 mt-1">재능 100%에 가까울수록 지능은 유전/선천성에 달림</div>
+                  </div>
+                </div>
+
+                <!-- Input Slider -->
+                <div class="space-y-2">
+                  <input type="range" id="p2-ratio-slider" name="p2_ratio_slider" min="0" max="100" value="50" oninput="updateRatioSlider(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                  <div class="flex justify-between text-[11px] text-slate-400 font-medium px-1">
+                    <span>노력 100% · 재능 0%</span>
+                    <span class="text-indigo-600 font-semibold">재능 비중: <span id="p2-slider-indicator">50%</span></span>
+                    <span>재능 100% · 노력 0%</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- Separator Line -->
+            <hr id="p2-divider" class="border-slate-200">
+
+            <!-- BLOCK B: [수정] Independent Sliders -->
+            <div id="p2-modified-block" class="space-y-6">
+              <div class="flex items-center gap-2">
+                <span class="bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded text-xs">[수정]</span>
+                <h4 class="text-sm font-bold text-slate-800">내 지능 향상에서 각각이 얼마나 중요하다고 생각하나요? (서로 독립적으로 응답)</h4>
+              </div>
+
+              <div class="space-y-6">
+                <!-- Slider A: Effort Importance -->
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">요소 1</span>
+                    <span class="text-sm font-semibold text-slate-700">노력의 중요도</span>
+                    <span class="text-base font-bold text-slate-900"><span id="p2-effort-imp-val">50</span>점 / 100</span>
+                  </div>
+                  <input type="range" id="p2-effort-importance" name="p2_effort_importance" min="0" max="100" value="50" oninput="document.getElementById('p2-effort-imp-val').innerText = this.value" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                  <div class="flex justify-between text-[11px] text-slate-400 px-1">
+                    <span>전혀 중요하지 않음 (0)</span>
+                    <span>보통이다 (50)</span>
+                    <span>매우 중요함 (100)</span>
+                  </div>
+                </div>
+
+                <!-- Slider B: Talent Importance -->
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">요소 2</span>
+                    <span class="text-sm font-semibold text-slate-700">재능의 중요도</span>
+                    <span class="text-base font-bold text-slate-900"><span id="p2-talent-imp-val">50</span>점 / 100</span>
+                  </div>
+                  <input type="range" id="p2-talent-importance" name="p2_talent_importance" min="0" max="100" value="50" oninput="document.getElementById('p2-talent-imp-val').innerText = this.value" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                  <div class="flex justify-between text-[11px] text-slate-400 px-1">
+                    <span>전혀 중요하지 않음 (0)</span>
+                    <span>보통이다 (50)</span>
+                    <span>매우 중요함 (100)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
-
-          <hr class="border-slate-200">
-
-          <!-- [수정] Independent Sliders (Effort & Talent separately) -->
-          <div class="space-y-6">
-            <div class="flex items-center gap-2">
-              <span class="bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded text-xs">[수정]</span>
-              <h4 class="text-sm font-bold text-slate-800">지능 향상에서 각각이 얼마나 중요하다고 생각하나요? (서로 독립적으로 응답)</h4>
-            </div>
-
-            <div class="space-y-6">
-              <!-- Slider A: Effort Importance -->
-              <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">요소 1</span>
-                  <span class="text-sm font-semibold text-slate-700">노력의 중요도</span>
-                  <span class="text-base font-bold text-slate-900"><span id="p2-effort-imp-val">50</span>점 / 100</span>
-                </div>
-                <input type="range" id="p2-effort-importance" name="p2_effort_importance" min="0" max="100" value="50" oninput="document.getElementById('p2-effort-imp-val').innerText = this.value" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
-                <div class="flex justify-between text-[11px] text-slate-400 px-1">
-                  <span>전혀 중요하지 않음 (0)</span>
-                  <span>보통이다 (50)</span>
-                  <span>매우 중요함 (100)</span>
-                </div>
-              </div>
-
-              <!-- Slider B: Talent Importance -->
-              <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">요소 2</span>
-                  <span class="text-sm font-semibold text-slate-700">재능의 중요도</span>
-                  <span class="text-base font-bold text-slate-900"><span id="p2-talent-imp-val">50</span>점 / 100</span>
-                </div>
-                <input type="range" id="p2-talent-importance" name="p2_talent_importance" min="0" max="100" value="50" oninput="document.getElementById('p2-talent-imp-val').innerText = this.value" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
-                <div class="flex justify-between text-[11px] text-slate-400 px-1">
-                  <span>전혀 중요하지 않음 (0)</span>
-                  <span>보통이다 (50)</span>
-                  <span>매우 중요함 (100)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 
@@ -417,7 +440,7 @@
         <button type="submit" class="w-full sm:w-auto px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
           설문 완료 및 응답 전송
         </button>
-        <p class="text-xs text-slate-400 mt-3">제출 시, 구글 드라이브(연동 완료된 경우) 및 실시간 연구 분석 서버로 데이터가 전송됩니다.</p>
+        <p class="text-xs text-slate-400 mt-3">제출 시, 구글 드라이브 및 연구 분석 서버로 데이터가 안전하게 암호화되어 전송됩니다.</p>
       </div>
 
     </form>
@@ -453,7 +476,7 @@
     </div>
   </div>
 
-  <!-- RESEARCH DATA CLEAR CONFIRMATION MODAL (No Browser Alerts Allowed) -->
+  <!-- RESEARCH DATA CLEAR CONFIRMATION MODAL -->
   <div id="clear-confirm-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center z-[60] p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-6 text-center border border-rose-100 relative overflow-hidden">
       <div class="absolute top-0 left-0 w-full h-2 bg-rose-500"></div>
@@ -511,7 +534,7 @@
           <div class="space-y-2">
             <div class="flex justify-between items-center text-xs">
               <span class="font-bold text-slate-600">Google Apps Script 최적화 통합 코드 (doGet 추가됨)</span>
-              <button onclick="copyAppsScriptCode()" class="text-indigo-600 hover:text-indigo-800 font-bold bg-white px-2 py-1 rounded border border-indigo-200">코드 복사</button>
+              <button onclick="copyAppsScriptCode(event)" class="text-indigo-600 hover:text-indigo-800 font-bold bg-white px-2 py-1 rounded border border-indigo-200">코드 복사</button>
             </div>
             <textarea id="apps-script-code" readonly class="w-full h-36 bg-slate-900 text-emerald-400 text-[10px] font-mono p-3 rounded-lg border border-slate-800 focus:outline-none" style="resize:none;">
 // 1. 브라우저 주소창으로 직접 접속(GET) 테스트 시 친절한 안내를 띄워주는 함수
@@ -636,8 +659,9 @@ function doPost(e) {
     // App State Configuration
     const STATE = {
       framing: 'self', // 'self' or 'others'
-      gasUrl: localStorage.getItem('gas_sheet_url') || '',
-      responses: JSON.parse(localStorage.getItem('study2_responses')) || []
+      gasUrl: CONFIG.googleWebAppUrl || localStorage.getItem('gas_sheet_url') || '',
+      responses: JSON.parse(localStorage.getItem('study2_responses')) || [],
+      p2DisplayOrder: 'original_first' // 'original_first' or 'modified_first'
     };
 
     // Part 1 Questions Base Text Config
@@ -646,13 +670,13 @@ function doPost(e) {
         id: 1,
         self: "나는 내 지능을 상당히 많이 바꿀 수 있다.",
         others: "사람들은 자신의 지능을 상당히 많이 바꿀 수 있다.",
-        direction: 1 // Positive orientation
+        direction: 1
       },
       {
         id: 2,
         self: "나는 새로운 것을 배울 수 있지만, 기본 지능 자체는 바꾸기 어렵다.",
         others: "사람들은 새로운 것을 배울 수 있지만, 기본 지능 자체는 바꾸기 어렵다.",
-        direction: -1 // Reversed score
+        direction: -1
       },
       {
         id: 3,
@@ -690,21 +714,77 @@ function doPost(e) {
       { value: 6, text: "매우 그렇다" }
     ];
 
+    // Easter Egg Click Counter
+    let titleClickCount = 0;
+    function handleHeaderClick() {
+      titleClickCount++;
+      if (titleClickCount >= 5) {
+        titleClickCount = 0;
+        showResearcherConsole();
+      }
+    }
+
+    // Force Open Researcher View
+    function showResearcherConsole() {
+      const consolePanel = document.getElementById('researcher-console');
+      const frameTag = document.getElementById('survey-frame-tag');
+      
+      consolePanel.classList.remove('hidden');
+      frameTag.classList.remove('hidden');
+      frameTag.classList.add('inline-flex');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     // Initial load
     window.onload = function() {
-      // Check saved App Script Web App URL
+      // 1. Determine Researcher Mode Access via URL parameter (?admin=true or ?mode=researcher)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('admin') || urlParams.get('mode') === 'researcher') {
+        showResearcherConsole();
+      }
+
+      // 2. Initialize sync config state
       if (STATE.gasUrl) {
         document.getElementById('gas-url-input').value = STATE.gasUrl;
         updateGasSyncStatusIndicator(true);
+      } else {
+        updateGasSyncStatusIndicator(false);
       }
       
-      // Render Part 1 Questions
+      // 3. Counterbalancing Part 2 (Shuffle the Original and Modified blocks with 50% probability)
+      counterbalancePart2();
+
+      // 4. Render Part 1 Questions
       renderPart1Questions();
-      // Render Part 3 wording based on initial state
+
+      // 5. Render Part 3 wording based on initial state
       updatePart3FramingText();
-      // Update data table UI
+
+      // 6. Update data table UI
       updateResponseTableUI();
     };
+
+    // Shuffle Block elements inside DOM for true counterbalance
+    function counterbalancePart2() {
+      const container = document.getElementById('part2-flow-container');
+      const originalBlock = document.getElementById('p2-original-block');
+      const modifiedBlock = document.getElementById('p2-modified-block');
+      const divider = document.getElementById('p2-divider');
+
+      // 50% chance to swap order
+      if (Math.random() < 0.5) {
+        STATE.p2DisplayOrder = 'modified_first';
+        // Clear and append in reverse order
+        container.innerHTML = '';
+        container.appendChild(modifiedBlock);
+        container.appendChild(divider);
+        container.appendChild(originalBlock);
+      } else {
+        STATE.p2DisplayOrder = 'original_first';
+      }
+    }
 
     // Toggle Researcher Console Details Collapsed/Open
     function toggleConsole() {
@@ -735,7 +815,6 @@ function doPost(e) {
     function setFraming(frameType) {
       STATE.framing = frameType;
       
-      // Update UI Toggles Highlight in Console
       const btnSelf = document.getElementById('btn-frame-self');
       const btnOthers = document.getElementById('btn-frame-others');
       
@@ -769,7 +848,6 @@ function doPost(e) {
         const cardDiv = document.createElement('div');
         cardDiv.className = "space-y-3";
         
-        // Question header
         cardDiv.innerHTML = `
           <div class="flex items-start gap-3">
             <span class="flex items-center justify-center h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-extrabold shrink-0 mt-0.5">${index + 1}</span>
@@ -777,7 +855,6 @@ function doPost(e) {
           </div>
         `;
 
-        // Likert scale items wrapper (Fully Responsive Layout: Grid on Mobile, Flex on Desktop)
         const scaleGrid = document.createElement('div');
         scaleGrid.className = "grid grid-cols-2 md:grid-cols-6 gap-2 pt-1";
 
@@ -800,17 +877,15 @@ function doPost(e) {
       });
     }
 
-    // Part 2 Circular/Interactive Sliders Dual Sync
+    // Part 2 Interactive Sliders Dual Sync
     function updateRatioSlider(value) {
       const talentPercent = parseInt(value);
       const effortPercent = 100 - talentPercent;
       
-      // Update label elements
       document.getElementById('p2-effort-label').innerText = effortPercent;
       document.getElementById('p2-talent-label').innerText = talentPercent;
       document.getElementById('p2-slider-indicator').innerText = talentPercent + "%";
       
-      // Update bar dimensions
       document.getElementById('effort-bar').style.width = effortPercent + "%";
       document.getElementById('talent-bar').style.width = talentPercent + "%";
     }
@@ -834,13 +909,12 @@ function doPost(e) {
         titleC.innerText = "C 사람은 현재 시험에서 92점을 받았습니다. 이 사람의 1년 뒤 점수는?";
       }
 
-      // Re-trigger Calculations
       calculateGainLoss('a', 17);
       calculateGainLoss('b', 55);
       calculateGainLoss('c', 92);
     }
 
-    // Part 3 Dynamic Calculations (Real-Time feedback loop)
+    // Part 3 Dynamic Calculations
     function calculateGainLoss(personId, currentScore) {
       const minInput = document.getElementById(`p3-${personId}-min`);
       const maxInput = document.getElementById(`p3-${personId}-max`);
@@ -850,7 +924,6 @@ function doPost(e) {
       const minVal = parseFloat(minInput.value) || 0;
       const maxVal = parseFloat(maxInput.value) || 0;
 
-      // Bound Inputs within 0-100 logic
       if (minInput.value !== "" && (minVal < 0 || minVal > 100)) {
         minInput.value = Math.max(0, Math.min(100, minVal));
       }
@@ -861,9 +934,7 @@ function doPost(e) {
       const validatedMin = parseFloat(minInput.value) || 0;
       const validatedMax = parseFloat(maxInput.value) || 0;
 
-      // 상향(향상) 폭 = Max - Current (상향선 양수만)
       const gain = Math.max(0, validatedMax - currentScore);
-      // 하향(감퇴) 폭 = Current - Min (하향선 양수만)
       const loss = Math.max(0, currentScore - validatedMin);
 
       gainLabel.innerText = gain;
@@ -877,10 +948,10 @@ function doPost(e) {
       
       if (!urlInput) {
         localStorage.removeItem('gas_sheet_url');
-        STATE.gasUrl = '';
+        STATE.gasUrl = CONFIG.googleWebAppUrl || '';
         updateGasSyncStatusIndicator(false);
         alertP.className = "text-[10px] text-rose-500 font-semibold";
-        alertP.innerText = "연동 URL이 해제되었습니다.";
+        alertP.innerText = "연동 URL이 해제되었습니다. 코드의 CONFIG 설정을 기본으로 사용합니다.";
         return;
       }
 
@@ -895,7 +966,7 @@ function doPost(e) {
       updateGasSyncStatusIndicator(true);
       
       alertP.className = "text-[10px] text-emerald-600 font-semibold";
-      alertP.innerText = "성공적으로 구글 시트 연동 URL이 등록 저장되었습니다!";
+      alertP.innerText = "성공적으로 구글 시트 연동 URL이 브라우저에 임시 저장되었습니다!";
       
       setTimeout(() => {
         alertP.className = "text-[10px] text-slate-400";
@@ -905,22 +976,25 @@ function doPost(e) {
 
     function updateGasSyncStatusIndicator(isConnected) {
       const statusSpan = document.getElementById('sync-status');
-      if (isConnected) {
+      
+      if (CONFIG.googleWebAppUrl) {
         statusSpan.className = "text-emerald-400 font-bold";
-        statusSpan.innerText = "연동 활성화됨 (Google Sheet 실시간 동기화 중)";
+        statusSpan.innerText = "CONFIG 파일 기반 연동 활성화됨 (안전한 영구 연동 중)";
+      } else if (isConnected) {
+        statusSpan.className = "text-amber-400 font-bold";
+        statusSpan.innerText = "임시 브라우저 연동 활성화됨 (본인 브라우저에서만 작동)";
       } else {
         statusSpan.className = "text-rose-400 font-semibold";
-        statusSpan.innerText = "미연동 (아래 설정 메뉴에서 API 연동 가능)";
+        statusSpan.innerText = "미연동 상태 (참여 전송이 원활하지 않을 수 있습니다.)";
       }
     }
 
     // Copy Tool Helper
-    function copyAppsScriptCode() {
+    function copyAppsScriptCode(event) {
       const codeArea = document.getElementById('apps-script-code');
       codeArea.select();
       document.execCommand('copy');
       
-      // Feedback button label
       const btn = event.target;
       const originalText = btn.innerText;
       btn.innerText = "복사 완료!";
@@ -935,7 +1009,6 @@ function doPost(e) {
     function handleSurveySubmit(e) {
       e.preventDefault();
       
-      // Collect values
       const formData = new FormData(e.target);
       const timestamp = new Date().toISOString();
       const participantId = 'P-' + Math.random().toString(36).substr(2, 9).toUpperCase();
@@ -962,6 +1035,9 @@ function doPost(e) {
         timestamp: timestamp,
         participant_id: participantId,
         framing_condition: STATE.framing,
+        
+        // Counterbalance Tracking (역균형 보정값 기록)
+        p2_display_order: STATE.p2DisplayOrder,
         
         // Part 1
         p1_q1: p1Answers.p1_q1,
@@ -1006,10 +1082,12 @@ function doPost(e) {
       STATE.responses.push(responsePayload);
       localStorage.setItem('study2_responses', JSON.stringify(STATE.responses));
 
-      // Trigger Submission to Google Sheets Web App
+      // Trigger Submission to Google Sheets Web App (Priority to Config URL, fallback to local storage url)
+      const targetUrl = CONFIG.googleWebAppUrl || STATE.gasUrl;
       let syncedToGoogle = false;
-      if (STATE.gasUrl) {
-        postDataToGoogleSheets(STATE.gasUrl, responsePayload);
+      
+      if (targetUrl) {
+        postDataToGoogleSheets(targetUrl, responsePayload);
         syncedToGoogle = true;
       }
 
@@ -1043,22 +1121,21 @@ function doPost(e) {
       document.getElementById('p2-talent-imp-val').innerText = "50";
     }
 
-    // Google Sheets POST Endpoint Integration
+    // Google Sheets POST (no-cors, text/plain bypass to ensure CORS compatibility)
     function postDataToGoogleSheets(url, payload) {
-      // Clean cross-origin CORS POSTing via JSON string payload
       fetch(url, {
         method: 'POST',
-        mode: 'no-cors', // Standard Google Apps script cross-origin submission configuration
+        mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain' // Setting text/plain prevents CORS preflight triggers
         },
         body: JSON.stringify(payload)
       })
       .then(res => {
-        console.log("Response submission acknowledged by Google Web App.");
+        console.log("Data successfully emitted to Google Apps Script.");
       })
       .catch(err => {
-        console.error("Failed to post to Google sheets automatically:", err);
+        console.error("Data submission failed:", err);
       });
     }
 
@@ -1077,7 +1154,6 @@ function doPost(e) {
       }
 
       tbody.innerHTML = '';
-      // Show newer responses first
       [...STATE.responses].reverse().forEach(resp => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors";
@@ -1111,7 +1187,6 @@ function doPost(e) {
     // Modal close & Reset Survey View state
     function closeSuccessModal() {
       toggleModal('success-modal');
-      // Scroll to top smoothly
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1131,7 +1206,7 @@ function doPost(e) {
       closeClearConfirmModal();
     }
 
-    // Mock Response Generator (Easy testing)
+    // Mock Response Generator
     function generateMockData(count) {
       const preferences = ["all_easy", "mostly_easy", "half_half", "mostly_hard", "all_hard"];
       const genders = ["male", "female"];
@@ -1144,7 +1219,6 @@ function doPost(e) {
         
         const originalTalent = Math.floor(Math.random() * 80) + 10;
         
-        // Random reasonable bounds
         const a_min = Math.max(0, 17 - Math.floor(Math.random() * 15));
         const a_max = Math.min(100, 17 + Math.floor(Math.random() * 45));
         const b_min = Math.max(0, 55 - Math.floor(Math.random() * 30));
@@ -1156,6 +1230,7 @@ function doPost(e) {
           timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
           participant_id: 'MOCK-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
           framing_condition: randFrame,
+          p2_display_order: Math.random() < 0.5 ? 'original_first' : 'modified_first',
           p1_q1: p1_answers[0],
           p1_q2: p1_answers[1],
           p1_q3: p1_answers[2],
@@ -1186,9 +1261,9 @@ function doPost(e) {
 
         STATE.responses.push(mockPayload);
         
-        // Also push to Google Sheet if connected!
-        if (STATE.gasUrl) {
-          postDataToGoogleSheets(STATE.gasUrl, mockPayload);
+        const targetUrl = CONFIG.googleWebAppUrl || STATE.gasUrl;
+        if (targetUrl) {
+          postDataToGoogleSheets(targetUrl, mockPayload);
         }
       }
 
@@ -1201,13 +1276,12 @@ function doPost(e) {
       if (STATE.responses.length === 0) return;
       
       const headers = Object.keys(STATE.responses[0]);
-      let csvContent = "\uFEFF"; // UTF-8 BOM representation for direct Microsoft Excel compat
+      let csvContent = "\uFEFF"; // UTF-8 BOM
       csvContent += headers.join(",") + "\n";
       
       STATE.responses.forEach(row => {
         const values = headers.map(header => {
           const val = row[header] === undefined ? "" : row[header];
-          // Escape quotes in elements
           const formatted = typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val;
           return formatted;
         });
